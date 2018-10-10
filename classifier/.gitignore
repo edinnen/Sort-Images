@@ -1,0 +1,11 @@
+data
+rawdata
+bottleneck
+augmented
+output_graph.pb
+trainedModel
+trainedModel/*
+checkpoint*
+output*
+rawdata.tar.gz
+retrain_logs/

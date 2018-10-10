@@ -1,0 +1,7 @@
+classifier/data
+classifier/rawdata
+classifier/bottleneck
+classifier/trainedModel
+classifier/augmented
+classifier/output_graph.pb
+**/node_modules
