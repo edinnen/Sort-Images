@@ -17,6 +17,8 @@ import numpy as np
 import cv2
 import re
 import os
+import pathlib
+
 from label_image import *
 
 class ImageClassifier(tk.Frame):
@@ -29,7 +31,7 @@ class ImageClassifier(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         """
-        Initialize the GUI
+        Initialize the GUI and start classification
 
         Args:
             parent: The Tkinter window
@@ -37,6 +39,7 @@ class ImageClassifier(tk.Frame):
         Returns:
             null
         """
+        # Begin initializing the GUI
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
         self.root = parent
@@ -62,7 +65,12 @@ class ImageClassifier(tk.Frame):
         claButton.grid(row=0, column=1, padx=2, pady=2)
         nextButton = tk.Button(self.root, text='Next', height=2, width=8, command=self.next_image)
         nextButton.grid(row=0, column=0, padx=2, pady=2)
+        # GUI Initialized
 
+        # Create the folders for each category
+        self.create_folders()
+
+        # Begin classifying images
         self.counter = 0
         self.max_counter = len(self.list_images)-1
         self.next_image()
@@ -185,7 +193,16 @@ class ImageClassifier(tk.Frame):
         im=cv2.resize(im,(height,width))
         cv2.imwrite("./TestImages/" + re.sub(r'\.jpg', '', self.list_images[self.counter], flags=re.IGNORECASE) + '.norm.jpg', im)
 
+    def create_folders(self):
+        """
+        Create the category folders to deposit the images into
+        """
+        labels = load_labels("./output_labels.txt") # The labels/categories
+        for label in labels:
+            # Create the category and its parents if needed
+            pathlib.Path("./categorized/" + label).mkdir(parents=True, exist_ok=True)
+
 if __name__ == "__main__":
     root = tk.Tk()
-    MyApp = ImageClassifier(root)
+    classifier = ImageClassifier(root)
     tk.mainloop()
