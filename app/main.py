@@ -45,6 +45,7 @@ class ImageClassifier(tk.Frame):
         # Initialize some variables we will need
         self.category = '' # The selected category for the image
         self.shoot_name = '' # The name of the current image's parent directory
+        self.labels = load_labels("./output_labels.txt")
 
         # Create the folders for each category
         self.create_folders()
@@ -61,17 +62,22 @@ class ImageClassifier(tk.Frame):
 
         self.frame1 = tk.Frame(self.root, width=500, height=400, bd=2)
         self.frame1.grid(row=1, column=0)
-        self.frame2 = tk.Frame(self.root, width=500, height=400, bd=1)
-        self.frame2.grid(row=1, column=1)
+        # self.frame2 = tk.Frame(self.root, width=500, height=400, bd=1)
+        # self.frame2.grid(row=1, column=1)
 
-        self.canvas1 = tk.Canvas(self.frame1, height=360, width=480, background="white", bd=1, relief=tk.RAISED)
+        self.canvas1 = tk.Canvas(self.frame1, height=360, width=480, background="white", bd=1)
         self.canvas1.grid(row=1, column=0)
-        self.canvas2 = tk.Canvas(self.frame2, height=390, width=490, bd=2, relief=tk.SUNKEN)
-        self.canvas2.grid(row=1, column=0)
+        # self.canvas2 = tk.Canvas(self.frame2, height=390, width=490, bd=2, relief=tk.SUNKEN)
+        # self.canvas2.grid(row=1, column=0)
+        # self.frame3 = tk.Frame(self.canvas2)
+        self.canvas2 = tk.Canvas(self.root, width=500, height=400, bd=2)
+        self.canvas2.grid(row=1, column=1)
+        self.frame2 = tk.Frame(self.canvas2, width=500, height=400, bd=2)
+        self.canvas2.create_window(0,0,window=self.frame2,anchor='nw')
 
         claButton = tk.Button(self.root, text='Confirm', height=2, width=10, command=self.copy_to_category)
         claButton.grid(row=0, column=1, padx=2, pady=2)
-        nextButton = tk.Button(self.root, text='Next (Development)', height=2, width=8, command=self.next_image)
+        nextButton = tk.Button(self.root, text='Skip', height=2, width=8, command=self.next_image)
         nextButton.grid(row=0, column=0, padx=2, pady=2)
         # GUI Initialized
 
@@ -107,7 +113,6 @@ class ImageClassifier(tk.Frame):
                 self.next_step(height, width)
 
     def next_step(self, height, width):
-        # self.im = Image.open("{}{}".format("./TestImages/", self.list_images[self.counter]))
         # Display the image!
         self.im.thumbnail((width, height), Image.ANTIALIAS)
         self.root.photo = ImageTk.PhotoImage(self.im)
@@ -125,6 +130,7 @@ class ImageClassifier(tk.Frame):
 
         self.normalize() # Normalize the image for the classifier
         self.classify_obj() # Classify the normalized image
+        self.create_fields() # Create the metadata editing fields for the editor
 
         self.counter += 1 # Move on to the next image
 
@@ -139,7 +145,6 @@ class ImageClassifier(tk.Frame):
         selector for the editor.
         """
         model_file = "./output_graph.pb" # The frozen model
-        label_file = "./output_labels.txt" # The labels/categories
         input_height = 299
         input_width = 299
         input_mean = 0
@@ -175,16 +180,9 @@ class ImageClassifier(tk.Frame):
         # Get the last five reverse-ordered sorted indices of our results
         # Results in highest to least likely 'winning' categories
         top_k = results.argsort()[-5:][::-1]
-        labels = load_labels(label_file) # Load in our labels
+        labels = self.labels # Load in our labels
 
-        # Print our values to the canvas
-        values = '';
-        for i in top_k: # Loop over the winners
-            values = values + str(labels[i]) + ' => ' + str(round(results[i] * 100, 2)) + '%\n'; # Display percentages for winners
-        self.canvas2.delete("all")
-        self.canvas2.create_text(125, 65, fill="darkblue", font="Roboto 15", text=values)
-
-        # Set the category as the top result. TODO: Change this to a dropdown selector and make into a function
+        # Set the category as the top result by default.
         self.category = labels[top_k[0]]
 
         # Remove the normalized image
@@ -201,11 +199,34 @@ class ImageClassifier(tk.Frame):
         im=cv2.resize(im,(height,width))
         cv2.imwrite(re.sub(r'\.jpg', '', str(self.list_images[self.counter]), flags=re.IGNORECASE) + '.norm.jpg', im)
 
+    def create_fields(self):
+        """
+        Create the fields required for metadata entry
+        """
+        # Category selector
+        self.selectedCategory = tk.StringVar() # String variable to hold our choice
+        labels = {l for l in self.labels} # Dictionary with our label options
+        self.selectedCategory.set(self.category)
+        self.selectMenu = tk.OptionMenu(self.frame2, self.selectedCategory, *labels, command=self.change_category)
+        self.selectMenu.grid(column=1, row=0)
+
+        # Update the frame
+        self.update()
+        self.frame2.update_idletasks()
+        print('Created fields')
+
+    def change_category(self, *args):
+        """
+        Change the selected category
+        """
+        self.category = self.selectedCategory.get()
+        print(self.category)
+
     def create_folders(self):
         """
         Create the category folders to deposit the images into
         """
-        labels = load_labels("./output_labels.txt") # The labels/categories
+        labels = self.labels # The labels/categories
         for label in labels:
             # Create the category and its parents if needed
             pathlib.Path("./categorized/" + label).mkdir(parents=True, exist_ok=True)
