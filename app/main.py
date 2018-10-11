@@ -17,6 +17,10 @@ import numpy as np
 import cv2
 import re
 import os
+import pathlib
+import unidecode
+from shutil import copyfile
+
 from label_image import *
 
 class ImageClassifier(tk.Frame):
@@ -29,7 +33,7 @@ class ImageClassifier(tk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         """
-        Initialize the GUI
+        Initialize the GUI and start classification
 
         Args:
             parent: The Tkinter window
@@ -37,16 +41,23 @@ class ImageClassifier(tk.Frame):
         Returns:
             null
         """
+
+        # Initialize some variables we will need
+        self.category = '' # The selected category for the image
+        self.shoot_name = '' # The name of the current image's parent directory
+
+        # Create the folders for each category
+        self.create_folders()
+
+        # Begin initializing the GUI
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
         self.root = parent
         self.root.wm_title("Classify Image")
         src = "./TestImages/"
+        path = pathlib.Path(src)
 
-        self.list_images = []
-        for d in os.listdir(src):
-            if '.jpg' in d:
-                self.list_images.append(d)
+        self.list_images = [f for f in path.glob('**/*.jpg') if f.is_file()]
 
         self.frame1 = tk.Frame(self.root, width=500, height=400, bd=2)
         self.frame1.grid(row=1, column=0)
@@ -58,11 +69,13 @@ class ImageClassifier(tk.Frame):
         self.canvas2 = tk.Canvas(self.frame2, height=390, width=490, bd=2, relief=tk.SUNKEN)
         self.canvas2.grid(row=1, column=0)
 
-        claButton = tk.Button(self.root, text='Confirm', height=2, width=10, command=self.classify_obj)
+        claButton = tk.Button(self.root, text='Confirm', height=2, width=10, command=self.copy_to_category)
         claButton.grid(row=0, column=1, padx=2, pady=2)
-        nextButton = tk.Button(self.root, text='Next', height=2, width=8, command=self.next_image)
+        nextButton = tk.Button(self.root, text='Next (Development)', height=2, width=8, command=self.next_image)
         nextButton.grid(row=0, column=0, padx=2, pady=2)
+        # GUI Initialized
 
+        # Begin classifying images
         self.counter = 0
         self.max_counter = len(self.list_images)-1
         self.next_image()
@@ -81,8 +94,8 @@ class ImageClassifier(tk.Frame):
             self.canvas2.delete("all")
             self.canvas1.create_text(125, 65, fill="darkblue", font="Roboto 15", text="No more images!")
         else:
-            self.im = Image.open("{}{}".format("./TestImages/", self.list_images[self.counter]))
-
+            self.im = Image.open(str(self.list_images[self.counter]))
+            self.shoot_name = re.match(r'.*/(.*)/(.*)$', str(self.list_images[self.counter]), re.IGNORECASE)[1]
             # Calculate how large to make the thumbnail
             if (480-self.im.size[0])<(360-self.im.size[1]):
                 width = 480
@@ -134,7 +147,7 @@ class ImageClassifier(tk.Frame):
         input_layer = "Placeholder" # The name of our input layer
         output_layer = "model" # The name of our output layer
         # Load the normalized image
-        image = "{}{}".format("./TestImages/", re.sub(r'\.jpg', '', self.list_images[self.counter], flags=re.IGNORECASE) + '.norm.jpg')
+        image = str(re.sub(r'\.jpg', '', str(self.list_images[self.counter]), flags=re.IGNORECASE) + '.norm.jpg')
 
         # Load the graph
         graph = load_graph(model_file)
@@ -171,6 +184,9 @@ class ImageClassifier(tk.Frame):
         self.canvas2.delete("all")
         self.canvas2.create_text(125, 65, fill="darkblue", font="Roboto 15", text=values)
 
+        # Set the category as the top result. TODO: Change this to a dropdown selector and make into a function
+        self.category = labels[top_k[0]]
+
         # Remove the normalized image
         if os.path.exists(image):
             os.remove(image)
@@ -181,11 +197,54 @@ class ImageClassifier(tk.Frame):
         """
         height = 1024
         width = 768
-        im=cv2.imread("./TestImages/" + self.list_images[self.counter])
+        im=cv2.imread(str(self.list_images[self.counter]))
         im=cv2.resize(im,(height,width))
-        cv2.imwrite("./TestImages/" + re.sub(r'\.jpg', '', self.list_images[self.counter], flags=re.IGNORECASE) + '.norm.jpg', im)
+        cv2.imwrite(re.sub(r'\.jpg', '', str(self.list_images[self.counter]), flags=re.IGNORECASE) + '.norm.jpg', im)
+
+    def create_folders(self):
+        """
+        Create the category folders to deposit the images into
+        """
+        labels = load_labels("./output_labels.txt") # The labels/categories
+        for label in labels:
+            # Create the category and its parents if needed
+            pathlib.Path("./categorized/" + label).mkdir(parents=True, exist_ok=True)
+
+    def copy_to_category(self):
+        """
+        Copies the classified image to the chosen category folder
+
+        Args:
+            category: The name of the category to move the images to
+        """
+        # Find all the files in the current image's directory
+        path = pathlib.Path("./TestImages/")
+        files = [f for f in path.glob('**/{}/[!.]*'.format(self.shoot_name))]
+
+        # Move them to the appropriate folder
+        dst = "./categorized/{}/{}".format(self.category, self.shoot_name)
+        pathlib.Path(dst).mkdir(parents=True, exist_ok=True)
+        for src in files:
+            new_filename = self.slugify(re.match(r'.*/(.*)/(.*)$', str(src))[2]) # Ensure all file names are readable by browser
+            copyfile(src, "{}/{}".format(dst, new_filename))
+
+        # Move on to the next image
+        self.next_image()
+
+    def slugify(self, string):
+        """
+        Ensure filenames can be read in a browser
+
+        Args:
+            string: The filename string to slugify
+
+        Returns:
+            The slugified string
+        """
+        string = unidecode.unidecode(string).lower()
+        return re.sub(r'[^\w\.]+', '-', string)
 
 if __name__ == "__main__":
     root = tk.Tk()
-    MyApp = ImageClassifier(root)
+    classifier = ImageClassifier(root)
     tk.mainloop()

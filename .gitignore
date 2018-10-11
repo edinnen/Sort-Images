@@ -5,3 +5,10 @@ classifier/trainedModel
 classifier/augmented
 classifier/output_graph.pb
 **/node_modules
+**/*.CR2
+**/*.ARW
+**/*.NEF
+**/*.cr2
+**/*.arw
+**/*.nef
+app/categorized
