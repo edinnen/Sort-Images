@@ -318,19 +318,19 @@ class ImageClassifier(tk.Frame):
 
         metadata = {'name': '', 'date': '', 'credit': '', 'collection': '', 'tags': '', 'license': ''}
 
-        if (self.creativeNameVar.get() != "Creative Name:"):
+        if (self.creativeNameVar.get() != "Creative Name:" and self.creativeNameVar.get() != ""):
             metadata['name'] = self.creativeNameVar.get()
 
-        if (self.dateVar.get() != "Date Collected: (Format like yyyy-mm-dd)"):
+        if (self.dateVar.get() != "Date Collected: (Format like yyyy-mm-dd)" and self.dateVar.get() != ""):
             metadata['date'] = self.dateVar.get()
 
-        if (self.creditVar.get() != "Photo Credit:"):
+        if (self.creditVar.get() != "Photo Credit:" and self.creditVar.get() != ""):
             metadata['credit'] = self.creditVar.get()
 
-        if (self.collectionVar.get() != "Collection:"):
+        if (self.collectionVar.get() != "Collection:" and self.collectionVar.get() != ""):
             metadata['collection'] = self.collectionVar.get()
 
-        if (self.tagsVar.get() != "Tags. Comma separated. E.g., tag1, tag2, tag3"):
+        if (self.tagsVar.get() != "Tags. Comma separated. E.g., tag1, tag2, tag3" and self.tagsVar.get() != ""):
             metadata['tags'] = re.split(r',\s*', self.tagsVar.get()) # Split on comma with or without spaces
 
         metadata['license'] = self.selectedLicense.get()
