@@ -19,6 +19,7 @@ import re
 import os
 import pathlib
 import unidecode
+import json
 from shutil import copyfile
 
 from label_image import *
@@ -94,6 +95,9 @@ class ImageClassifier(tk.Frame):
         opens the next image in our list_images
         array
         """
+        # Clear the frame
+        for widget in self.frame2.winfo_children():
+            widget.destroy()
         if self.counter > self.max_counter:
             # Wow, no more images! Clear the canvases and notify editor
             self.canvas1.delete("all")
@@ -208,19 +212,72 @@ class ImageClassifier(tk.Frame):
         labels = {l for l in self.labels} # Dictionary with our label options
         self.selectedCategory.set(self.category)
         self.selectMenu = tk.OptionMenu(self.frame2, self.selectedCategory, *labels, command=self.change_category)
+        self.selectMenu.config(width=35)
         self.selectMenu.grid(column=1, row=0)
+
+        # License type selector
+        self.selectedLicense = tk.StringVar()
+        licenses = {'Apache 2.0', 'MIT'}
+        self.selectedLicense.set('MIT') # Set the default license
+        self.licenseMenu = tk.OptionMenu(self.frame2, self.selectedLicense, *licenses, command=self.change_license)
+        self.licenseMenu.config(width=35)
+        self.licenseMenu.grid(column=1, row=3)
+
+        # Creative name field
+        self.creativeNameVar = tk.StringVar()
+        self.creativeNameVar.set("Creative Name:") # Set our placeholder
+        self.creativeName = tk.Entry(self.frame2, textvariable=self.creativeNameVar) # Create the text field
+        self.creativeName.config(width=35)
+        self.creativeName.bind("<FocusIn>", lambda args: self.creativeName.delete('0', 'end')) # Delete placeholder text upon focus
+        self.creativeName.grid(column=1, row=6)
+
+        # Photo credit field
+        self.creditVar = tk.StringVar()
+        self.creditVar.set("Photo Credit:") # Set our placeholder
+        self.credit = tk.Entry(self.frame2, textvariable=self.creditVar) # Create the text field
+        self.credit.config(width=35)
+        self.credit.bind("<FocusIn>", lambda args: self.credit.delete('0', 'end')) # Delete placeholder text upon focus
+        self.credit.grid(column=1, row=9)
+
+        # Collection field
+        self.collectionVar = tk.StringVar()
+        self.collectionVar.set("Collection:") # Set our placeholder
+        self.collection = tk.Entry(self.frame2, textvariable=self.collectionVar) # Create the text field
+        self.collection.config(width=35)
+        self.collection.bind("<FocusIn>", lambda args: self.collection.delete('0', 'end')) # Delete placeholder text upon focus
+        self.collection.grid(column=1, row=12)
+
+        # Tags field
+        self.tagsVar = tk.StringVar()
+        self.tagsVar.set("Tags. Comma separated. E.g., tag1, tag2, tag3")
+        self.tags = tk.Entry(self.frame2, textvariable=self.tagsVar)
+        self.tags.config(width=35)
+        self.tags.bind("<FocusIn>", lambda args: self.tags.delete('0', 'end'))
+        self.tags.grid(column=1, row=15)
+
+        # Date Collected field
+        self.dateVar = tk.StringVar()
+        self.dateVar.set("Date Collected: (Format like yyyy-mm-dd)")
+        self.date = tk.Entry(self.frame2, textvariable=self.dateVar) # Create the text field
+        self.date.config(width=35)
+        self.date.bind("<FocusIn>", lambda args: self.date.delete('0', 'end')) # Delete placeholder text upon focus
+        self.date.grid(column=1, row=18)
 
         # Update the frame
         self.update()
         self.frame2.update_idletasks()
-        print('Created fields')
 
     def change_category(self, *args):
         """
         Change the selected category
         """
         self.category = self.selectedCategory.get()
-        print(self.category)
+
+    def change_license(self, *args):
+        """
+        Change the seleted license
+        """
+        self.license = self.selectedLicense.get()
 
     def create_folders(self):
         """
@@ -249,8 +306,39 @@ class ImageClassifier(tk.Frame):
             new_filename = self.slugify(re.match(r'.*/(.*)/(.*)$', str(src))[2]) # Ensure all file names are readable by browser
             copyfile(src, "{}/{}".format(dst, new_filename))
 
+        # Write the metadata file
+        self.write_metadata(dst)
+
         # Move on to the next image
         self.next_image()
+
+    def write_metadata(self, dst):
+        """
+        Write the current image's metadata to 'metadata.json' with corresponding image files
+        """
+
+        metadata = {'name': '', 'date': '', 'credit': '', 'collection': '', 'tags': '', 'license': ''}
+
+        if (self.creativeNameVar.get() != "Creative Name:"):
+            metadata['name'] = self.creativeNameVar.get()
+
+        if (self.dateVar.get() != "Date Collected: (Format like yyyy-mm-dd)"):
+            metadata['date'] = self.dateVar.get()
+
+        if (self.creditVar.get() != "Photo Credit:"):
+            metadata['credit'] = self.creditVar.get()
+
+        if (self.collectionVar.get() != "Collection:"):
+            metadata['collection'] = self.collectionVar.get()
+
+        if (self.tagsVar.get() != "Tags. Comma separated. E.g., tag1, tag2, tag3"):
+            metadata['tags'] = re.split(r',\s*', self.tagsVar.get()) # Split on comma with or without spaces
+
+        metadata['license'] = self.selectedLicense.get()
+
+        with open("{}/metadata.json".format(dst), 'w') as outfile:
+            json.dump(metadata, outfile)
+
 
     def slugify(self, string):
         """
