@@ -46,7 +46,7 @@ class ImageClassifier(tk.Frame):
         self.category = '' # The selected category for the image
         self.shoot_name = '' # The name of the current image's parent directory
         self.labels = load_labels("./output_labels.txt")
-        
+
         # Load categories
         if not pathlib.Path("./categories.txt").exists(): # Create our category file if it does not exist
             if pathlib.Path("./categorized").exists(): # If the editor has already categorized some images, they could have added new categories. So we want to load them
