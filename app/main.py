@@ -56,21 +56,20 @@ class ImageClassifier(tk.Frame):
 
         self.root = parent
         self.root.wm_title("Classify Image")
+
+        # Create the list of images to process
         src = "./TestImages/"
         path = pathlib.Path(src)
-
-        self.list_images = [f for f in path.glob('**/*.jpg') if f.is_file()]
+        completed = "./categorized"
+        completedPath = pathlib.Path(completed)
+        self.list_completed = [re.match(r'.*/(.*)/(.*)$', str(f))[2] for f in completedPath.glob('**/*.jpg') if f.is_file()] # Find the images we have already processed
+        self.list_images = [f for f in path.glob('**/*.jpg') if f.is_file() and re.match(r'.*/(.*)/(.*)$', str(f))[2] not in self.list_completed] # Find all the unprocessed images
 
         self.frame1 = tk.Frame(self.root, width=500, height=400, bd=2)
         self.frame1.grid(row=1, column=0)
-        # self.frame2 = tk.Frame(self.root, width=500, height=400, bd=1)
-        # self.frame2.grid(row=1, column=1)
 
         self.canvas1 = tk.Canvas(self.frame1, height=360, width=480, background="white", bd=1)
         self.canvas1.grid(row=1, column=0)
-        # self.canvas2 = tk.Canvas(self.frame2, height=390, width=490, bd=2, relief=tk.SUNKEN)
-        # self.canvas2.grid(row=1, column=0)
-        # self.frame3 = tk.Frame(self.canvas2)
         self.canvas2 = tk.Canvas(self.root, width=500, height=400, bd=2)
         self.canvas2.grid(row=1, column=1)
         self.frame2 = tk.Frame(self.canvas2, width=500, height=400, bd=2)
@@ -338,7 +337,6 @@ class ImageClassifier(tk.Frame):
 
         with open("{}/metadata.json".format(dst), 'w') as outfile:
             json.dump(metadata, outfile)
-
 
     def slugify(self, string):
         """
