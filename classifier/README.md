@@ -1,4 +1,4 @@
-# OW Image classification
+# OW Image Classifier
 
 **Setup:**
 * Python 3.5
