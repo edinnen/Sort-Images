@@ -42,11 +42,20 @@ class ImageClassifier(tk.Frame):
         Returns:
             null
         """
-
         # Initialize some variables we will need
         self.category = '' # The selected category for the image
         self.shoot_name = '' # The name of the current image's parent directory
         self.labels = load_labels("./output_labels.txt")
+        
+        # Load categories
+        if not pathlib.Path("./categories.txt").exists(): # Create our category file if it does not exist
+            if pathlib.Path("./categorized").exists(): # If the editor has already categorized some images, they could have added new categories. So we want to load them
+                with open("./categories.txt", 'w') as categories:
+                    for category in next(os.walk('./categorized'))[1]:
+                        categories.write("{}\n".format(category))
+            else:
+                copyfile("./output_labels.txt", "./categories.txt") # Otherwise just copy the output_labels file
+        self.categories = load_labels("./categories.txt")
 
         # Create the folders for each category
         self.create_folders()
@@ -208,11 +217,19 @@ class ImageClassifier(tk.Frame):
         """
         # Category selector
         self.selectedCategory = tk.StringVar() # String variable to hold our choice
-        labels = {l for l in self.labels} # Dictionary with our label options
+        labels = {l for l in self.categories} # Dictionary with our category options
         self.selectedCategory.set(self.category)
         self.selectMenu = tk.OptionMenu(self.frame2, self.selectedCategory, *labels, command=self.change_category)
         self.selectMenu.config(width=35)
         self.selectMenu.grid(column=1, row=0)
+
+        # New category creator
+        self.newCategoryVar = tk.StringVar()
+        self.newCategoryVar.set("None of the above. Enter new category name:")
+        self.newCategory = tk.Entry(self.frame2, textvariable=self.newCategoryVar)
+        self.newCategory.config(width=35)
+        self.newCategory.bind("<FocusIn>", lambda args: self.newCategory.delete('0', 'end'))
+        self.newCategory.grid(column=1, row=3)
 
         # License type selector
         self.selectedLicense = tk.StringVar()
@@ -220,7 +237,7 @@ class ImageClassifier(tk.Frame):
         self.selectedLicense.set('MIT') # Set the default license
         self.licenseMenu = tk.OptionMenu(self.frame2, self.selectedLicense, *licenses, command=self.change_license)
         self.licenseMenu.config(width=35)
-        self.licenseMenu.grid(column=1, row=3)
+        self.licenseMenu.grid(column=1, row=6)
 
         # Creative name field
         self.creativeNameVar = tk.StringVar()
@@ -228,7 +245,7 @@ class ImageClassifier(tk.Frame):
         self.creativeName = tk.Entry(self.frame2, textvariable=self.creativeNameVar) # Create the text field
         self.creativeName.config(width=35)
         self.creativeName.bind("<FocusIn>", lambda args: self.creativeName.delete('0', 'end')) # Delete placeholder text upon focus
-        self.creativeName.grid(column=1, row=6)
+        self.creativeName.grid(column=1, row=9)
 
         # Photo credit field
         self.creditVar = tk.StringVar()
@@ -236,7 +253,7 @@ class ImageClassifier(tk.Frame):
         self.credit = tk.Entry(self.frame2, textvariable=self.creditVar) # Create the text field
         self.credit.config(width=35)
         self.credit.bind("<FocusIn>", lambda args: self.credit.delete('0', 'end')) # Delete placeholder text upon focus
-        self.credit.grid(column=1, row=9)
+        self.credit.grid(column=1, row=12)
 
         # Collection field
         self.collectionVar = tk.StringVar()
@@ -244,7 +261,7 @@ class ImageClassifier(tk.Frame):
         self.collection = tk.Entry(self.frame2, textvariable=self.collectionVar) # Create the text field
         self.collection.config(width=35)
         self.collection.bind("<FocusIn>", lambda args: self.collection.delete('0', 'end')) # Delete placeholder text upon focus
-        self.collection.grid(column=1, row=12)
+        self.collection.grid(column=1, row=15)
 
         # Tags field
         self.tagsVar = tk.StringVar()
@@ -252,7 +269,7 @@ class ImageClassifier(tk.Frame):
         self.tags = tk.Entry(self.frame2, textvariable=self.tagsVar)
         self.tags.config(width=35)
         self.tags.bind("<FocusIn>", lambda args: self.tags.delete('0', 'end'))
-        self.tags.grid(column=1, row=15)
+        self.tags.grid(column=1, row=18)
 
         # Date Collected field
         self.dateVar = tk.StringVar()
@@ -260,7 +277,7 @@ class ImageClassifier(tk.Frame):
         self.date = tk.Entry(self.frame2, textvariable=self.dateVar) # Create the text field
         self.date.config(width=35)
         self.date.bind("<FocusIn>", lambda args: self.date.delete('0', 'end')) # Delete placeholder text upon focus
-        self.date.grid(column=1, row=18)
+        self.date.grid(column=1, row=21)
 
         # Update the frame
         self.update()
@@ -282,10 +299,10 @@ class ImageClassifier(tk.Frame):
         """
         Create the category folders to deposit the images into
         """
-        labels = self.labels # The labels/categories
-        for label in labels:
+        categories = self.categories # The labels/categories
+        for category in categories:
             # Create the category and its parents if needed
-            pathlib.Path("./categorized/" + label).mkdir(parents=True, exist_ok=True)
+            pathlib.Path("./categorized/" + category).mkdir(parents=True, exist_ok=True)
 
     def copy_to_category(self):
         """
@@ -294,6 +311,12 @@ class ImageClassifier(tk.Frame):
         Args:
             category: The name of the category to move the images to
         """
+        # Check if user specified a new category
+        if (self.newCategoryVar.get() != "None of the above. Enter new category name:" and self.newCategoryVar.get() != ""):
+            newCat = re.sub('\W+', '', self.newCategoryVar.get().lower()) # Remove non word characters and convert to lowercase
+            self.add_category(newCat)
+            self.category = newCat
+
         # Find all the files in the current image's directory
         path = pathlib.Path("./TestImages/")
         files = [f for f in path.glob('**/{}/[!.]*'.format(self.shoot_name))]
@@ -310,6 +333,19 @@ class ImageClassifier(tk.Frame):
 
         # Move on to the next image
         self.next_image()
+
+    def add_category(self, category):
+        """
+        Add a new category to our category list and create it's folder
+
+        Args:
+            category: The name (string) for our new category
+        """
+        with open("./categories.txt", 'a') as categories:
+            categories.write("{}\n".format(category))
+        self.categories = load_labels("./categories.txt")
+        self.create_folders()
+
 
     def write_metadata(self, dst):
         """
