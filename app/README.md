@@ -6,6 +6,8 @@
 * Tkinter
 * Numpy
 * Unidecode
+* Pillow
+* Opencv-python
 
 # To run:
 ```python3 main.py```
