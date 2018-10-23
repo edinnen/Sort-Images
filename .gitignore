@@ -12,3 +12,4 @@ classifier/output_graph.pb
 **/*.arw
 **/*.nef
 app/categorized
+app/categories.txt

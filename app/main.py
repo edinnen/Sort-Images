@@ -16,7 +16,6 @@ import os
 import numpy as np
 import cv2
 import re
-import os
 import pathlib
 import unidecode
 import json
@@ -79,9 +78,9 @@ class ImageClassifier(tk.Frame):
 
         self.canvas1 = tk.Canvas(self.frame1, height=360, width=480, background="white", bd=1)
         self.canvas1.grid(row=1, column=0)
-        self.canvas2 = tk.Canvas(self.root, width=500, height=400, bd=2)
+        self.canvas2 = tk.Canvas(self.root, width=700, height=400, bd=2)
         self.canvas2.grid(row=1, column=1)
-        self.frame2 = tk.Frame(self.canvas2, width=500, height=400, bd=2)
+        self.frame2 = tk.Frame(self.canvas2, width=700, height=400, bd=2)
         self.canvas2.create_window(0,0,window=self.frame2,anchor='nw')
 
         claButton = tk.Button(self.root, text='Confirm', height=2, width=10, command=self.copy_to_category)
@@ -218,6 +217,7 @@ class ImageClassifier(tk.Frame):
         # Category selector
         self.selectedCategory = tk.StringVar() # String variable to hold our choice
         labels = {l for l in self.categories} # Dictionary with our category options
+        labels = sorted(labels)
         self.selectedCategory.set(self.category)
         self.selectMenu = tk.OptionMenu(self.frame2, self.selectedCategory, *labels, command=self.change_category)
         self.selectMenu.config(width=35)
@@ -233,8 +233,8 @@ class ImageClassifier(tk.Frame):
 
         # License type selector
         self.selectedLicense = tk.StringVar()
-        licenses = {'Apache 2.0', 'MIT'}
-        self.selectedLicense.set('MIT') # Set the default license
+        licenses = {'Small', 'Medium', 'Large'}
+        self.selectedLicense.set('Small') # Set the default license size
         self.licenseMenu = tk.OptionMenu(self.frame2, self.selectedLicense, *licenses, command=self.change_license)
         self.licenseMenu.config(width=35)
         self.licenseMenu.grid(column=1, row=6)
@@ -278,6 +278,46 @@ class ImageClassifier(tk.Frame):
         self.date.config(width=35)
         self.date.bind("<FocusIn>", lambda args: self.date.delete('0', 'end')) # Delete placeholder text upon focus
         self.date.grid(column=1, row=21)
+
+        # Editorial Number field
+        self.editorialVar = tk.StringVar()
+        self.editorialVar.set("Editorial #")
+        self.editorial = tk.Entry(self.frame2, textvariable=self.editorialVar)
+        self.editorial.config(width=35)
+        self.editorial.bind("<FocusIn>", lambda args: self.editorial.delete('0', 'end'))
+        self.date.grid(column=1, row=24)
+
+        # Restrictions
+        self.restrictionsVar = tk.StringVar()
+        self.restrictionsVar.set("Restrictions")
+        self.restrictions = tk.Entry(self.frame2, textvariable=self.restrictionsVar)
+        self.restrictions.config(width=35)
+        self.restrictions.bind("<FocusIn>", lambda args: self.restrictions.delete('0', 'end'))
+        self.restrictions.grid(column=2, row=0)
+
+        # Release
+        self.releaseVar = tk.StringVar()
+        self.releaseVar.set("Release Info")
+        self.release = tk.Entry(self.frame2, textvariable=self.releaseVar)
+        self.release.config(width=35)
+        self.release.bind("<FocusIn>", lambda args: self.release.delete('0', 'end'))
+        self.release.grid(column=2, row=3)
+
+        # Location
+        self.locationVar = tk.StringVar()
+        self.locationVar.set("Location")
+        self.location = tk.Entry(self.frame2, textvariable=self.locationVar)
+        self.location.config(width=35)
+        self.location.bind("<FocusIn>", lambda args: self.location.delete('0', 'end'))
+        self.location.grid(column=2, row=6)
+
+        # Description
+        self.descriptionVar = tk.StringVar()
+        self.descriptionVar.set("Description")
+        self.description = tk.Entry(self.frame2, textvariable=self.descriptionVar)
+        self.description.config(width=35)
+        self.description.bind("<FocusIn>", lambda args: self.description.delete('0', 'end'))
+        self.description.grid(column=2, row=9)
 
         # Update the frame
         self.update()
@@ -352,7 +392,7 @@ class ImageClassifier(tk.Frame):
         Write the current image's metadata to 'metadata.json' with corresponding image files
         """
 
-        metadata = {'name': '', 'date': '', 'credit': '', 'collection': '', 'tags': '', 'license': ''}
+        metadata = {'name': '', 'date': '', 'credit': '', 'collection': '', 'tags': '', 'license': '', 'editorial': '', 'restrictions': '', 'releaseInfo': '', 'location': '', 'description': ''}
 
         if (self.creativeNameVar.get() != "Creative Name:" and self.creativeNameVar.get() != ""):
             metadata['name'] = self.creativeNameVar.get()
@@ -370,6 +410,21 @@ class ImageClassifier(tk.Frame):
             metadata['tags'] = re.split(r',\s*', self.tagsVar.get()) # Split on comma with or without spaces
 
         metadata['license'] = self.selectedLicense.get()
+
+        if (self.editorialVar.get() != "Editorial #" and self.editorialVar.get() != ""):
+            metadata['editorial'] = self.editorialVar.get()
+
+        if (self.restrictionsVar.get() != "Restrictions" and self.restrictionsVar.get() != ""):
+            metadata['restrictions'] = self.restrictionsVar.get()
+
+        if (self.releaseVar.get() != "Release Info" and self.releaseVar.get() != ""):
+            metadata['releaseInfo'] = self.releaseVar.get()
+
+        if (self.locationVar.get() != "Location" and self.locationVar.get() != ""):
+            metadata['location'] = self.locationVar.get()
+
+        if (self.descriptionVar.get() != "Description" and self.descriptionVar.get() != ""):
+            metadata['description'] = self.descriptionVar.get()
 
         with open("{}/metadata.json".format(dst), 'w') as outfile:
             json.dump(metadata, outfile)
