@@ -3,7 +3,6 @@ classifier/rawdata
 classifier/bottleneck
 classifier/trainedModel
 classifier/augmented
-classifier/output_graph.pb
 **/node_modules
 **/*.CR2
 **/*.ARW
